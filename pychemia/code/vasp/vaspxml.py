@@ -146,26 +146,40 @@ class VaspXML(CodeOutput):
         
         """
         projected = self.dos_projected
-        if atoms == None :
+        if 'Up' in str(projected[0].labels) and 'Down' in str(projected[0].labels):
+            spinpol = True
+        else :
+            spinpol = False
+        
+        if atoms is None :
             atoms = np.arange(self.initial_structure.natom,dtype=int)
-        if spin == None :
-            spin = [0,1]
-        if orbitals == None :
-            orbitals = np.arange((len(projected[0].labels)-1)//2,dtype=int)
-        if title == None:
+        if spin is None :
+            if spinpol:
+                spin = [0,1]
+            else :
+                spin = [0]
+
+        if orbitals is None :
+            if spinpol:
+                orbitals = np.arange((len(projected[0].labels)-1)//2,dtype=int) 
+            else :
+                orbitals = np.arange((len(projected[0].labels)-1),dtype=int) #
+        
+        if title is None:
             title = 'Sum'
         orbitals = np.array(orbitals)
-        if len(spin) ==2:
+        if len(spin) == 2:
             labels = ['Energy','Spin-Up','Spin-Down']
-            new_orbitals = []
-            for ispin in spin :
-                new_orbitals.append(list(orbitals+ispin*(len(projected[0].labels)-1)//2))
-            orbitals = new_orbitals
         else : 
             if spin[0] == 0:
                 labels = ['Energy','Spin-Up']
             elif spin[0] == 1:
                 labels = ['Energy','Spin-Down']
+        new_orbitals = []
+        for ispin in spin :
+            new_orbitals.append(list(orbitals+ispin*(len(projected[0].labels)-1)//2))
+        orbitals = new_orbitals
+        
             
         
         
@@ -176,7 +190,7 @@ class VaspXML(CodeOutput):
             if len(spin) == 2 :
                 ret[:,1:]+=self.dos_projected[iatom].values[:,orbitals].sum(axis=2)
             elif len(spin) == 1 :
-                ret[:,1]+=self.dos_projected[iatom].values[:,orbitals].sum(axis=1)
+                ret[:,1]+=self.dos_projected[iatom].values[:,orbitals].sum(axis=2).reshape(-1,)
                 
         return DensityOfStates(table=ret,title=title,labels=labels)
         
